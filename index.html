@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="PitchBridge — AI-powered startup platform for founders and investors" />
+  <title>PitchBridge</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+=  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <aside class="sidebar">
+
+    <div class="logo">
+      <div class="logo-dot"></div>
+      PitchBridge
+    </div>
+
+    <nav>
+      <div class="nav-item active" onclick="navigate(this, 'dashboard')">
+        <span class="nav-icon">◈</span>Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate(this, 'startups')">
+        <span class="nav-icon">◎</span>Startups
+      </div>
+      <div class="nav-item" onclick="navigate(this, 'investors')">
+        <span class="nav-icon">◇</span>Investors
+      </div>
+      <div class="nav-item" onclick="navigate(this, 'events')">
+        <span class="nav-icon">◻</span>Events
+      </div>
+      <div class="nav-item" onclick="navigate(this, 'network')">
+        <span class="nav-icon">◉</span>Network
+      </div>
+    </nav>
+
+    <div class="api-section">
+      <div class="db-badge">
+        <span class="live-dot"></span>Supabase Live DB
+      </div>
+      <div class="api-label">Anthropic API Key</div>
+      <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-..." />
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Required for AI features</div>
+    </div>
+
+  </aside>
+
+
+  <main class="main">
+
+    <!-- dashboard -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">
+            <span class="live-dot"></span>Live — data syncs across all devices
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:24px">
+        <div class="stat-card">
+          <div class="stat-label">Startups</div>
+          <div class="stat-value" id="stat-startups">—</div>
+          <div class="stat-sub">On platform</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Investors</div>
+          <div class="stat-value" id="stat-investors">—</div>
+          <div class="stat-sub">Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Connections</div>
+          <div class="stat-value" id="stat-connections">—</div>
+          <div class="stat-sub">Made</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div style="font-size:15px;font-weight:500;margin-bottom:16px">Top AI-Scored Startups</div>
+          <div id="top-startups">
+            <div class="empty"><div class="empty-text">No evaluations yet</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:15px;font-weight:500;margin-bottom:16px">Upcoming Events</div>
+          <div id="upcoming-events">
+            <div class="empty"><div class="empty-text">No events yet</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- startups -->
+    <div class="page" id="page-startups">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Startups</div>
+          <div class="page-sub">Manage startup profiles</div>
+        </div>
+        <button class="btn btn-primary" onclick="openStartupModal()">+ Add Startup</button>
+      </div>
+
+      <div id="startups-list">
+        <div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Loading...</div></div>
+      </div>
+
+    </div>
+
+    <!--investors -->
+    <div class="page" id="page-investors">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Investor Discovery</div>
+          <div class="page-sub">Find the right investors</div>
+        </div>
+        <button class="btn btn-primary" onclick="openInvestorModal()">+ Add Investor</button>
+      </div>
+
+      <div id="investors-list">
+        <div class="empty"><div class="empty-icon">◇</div><div class="empty-text">Loading...</div></div>
+      </div>
+
+    </div>
+
+    <!-- events -->
+    <div class="page" id="page-events">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Events</div>
+          <div class="page-sub">Pitch nights, networking, workshops</div>
+        </div>
+        <button class="btn btn-primary" onclick="openEventModal()">+ Create Event</button>
+      </div>
+
+      <div id="events-list">
+        <div class="empty"><div class="empty-icon">◻</div><div class="empty-text">Loading...</div></div>
+      </div>
+
+    </div>
+
+    <!-- network -->
+    <div class="page" id="page-network">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">Founder Network</div>
+          <div class="page-sub">Connect with other founders</div>
+        </div>
+        <button class="btn btn-primary" onclick="openFounderModal()">+ Add Founder</button>
+      </div>
+
+      <div id="network-list">
+        <div class="empty"><div class="empty-icon">◉</div><div class="empty-text">Loading...</div></div>
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- startup modal -->
+  <div class="modal-overlay" id="startup-modal" style="display:none"
+       onclick="if(event.target===this) closeModal('startup-modal')">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="sm-title">New Startup</span>
+        <button class="modal-close" onclick="closeModal('startup-modal')">×</button>
+      </div>
+      <input type="hidden" id="s-id" />
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Startup Name *</label>
+          <input class="form-input" id="s-name" placeholder="e.g. NovaMed AI" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sector *</label>
+          <select class="form-select" id="s-sector">
+            <option value="">Select sector</option>
+            <option>HealthTech</option>
+            <option>FinTech</option>
+            <option>EdTech</option>
+            <option>CleanTech</option>
+            <option>SaaS</option>
+            <option>AI/ML</option>
+            <option>E-Commerce</option>
+            <option>PropTech</option>
+            <option>AgriTech</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Stage</label>
+          <select class="form-select" id="s-stage">
+            <option>Idea</option>
+            <option>MVP</option>
+            <option>Seed</option>
+            <option>Series A</option>
+            <option>Growth</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Team Size</label>
+          <input class="form-input" id="s-team" type="number" min="1" placeholder="4" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tagline</label>
+        <input class="form-input" id="s-tagline" placeholder="One sentence pitch" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Problem &amp; Solution *</label>
+        <textarea class="form-textarea" id="s-desc"
+          placeholder="Describe the problem you solve and your solution..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Traction / Metrics</label>
+        <input class="form-input" id="s-traction" placeholder="e.g. 500 users, $10k MRR, 3 LOIs" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Funding Ask (USD)</label>
+        <input class="form-input" id="s-ask" type="number" placeholder="500000" />
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="btn btn-secondary" style="flex:1" onclick="saveStartup(false)">Save Profile</button>
+        <button class="btn btn-primary"   style="flex:1" onclick="saveStartup(true)">Save + AI Evaluate ✦</button>
+      </div>
+      <div id="s-ai-result" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- investor modal -->
+  <div class="modal-overlay" id="investor-modal" style="display:none"
+       onclick="if(event.target===this) closeModal('investor-modal')">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="im-title">New Investor</span>
+        <button class="modal-close" onclick="closeModal('investor-modal')">×</button>
+      </div>
+      <input type="hidden" id="i-id" />
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input class="form-input" id="i-name" placeholder="Sarah Al-Hassan" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Firm / Fund</label>
+          <input class="form-input" id="i-firm" placeholder="Wamda Capital" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Focus Sectors (comma separated)</label>
+        <input class="form-input" id="i-sectors" placeholder="FinTech, SaaS, AI/ML" />
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Stage Preference</label>
+          <select class="form-select" id="i-stage">
+            <option>Pre-seed</option>
+            <option>Seed</option>
+            <option>Series A</option>
+            <option>Series B+</option>
+            <option>Any stage</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min Ticket (USD)</label>
+          <input class="form-input" id="i-min" type="number" placeholder="50000" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max Ticket (USD)</label>
+        <input class="form-input" id="i-max" type="number" placeholder="500000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Investment Thesis</label>
+        <textarea class="form-textarea" id="i-thesis"
+          placeholder="What kind of startups do you back?" style="min-height:70px"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveInvestor()">
+        Save Investor
+      </button>
+    </div>
+  </div>
+
+  <!-- event modal -->
+  <div class="modal-overlay" id="event-modal" style="display:none"
+       onclick="if(event.target===this) closeModal('event-modal')">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="em-title">Create Event</span>
+        <button class="modal-close" onclick="closeModal('event-modal')">×</button>
+      </div>
+      <input type="hidden" id="e-id" />
+      <div class="form-group">
+        <label class="form-label">Event Title *</label>
+        <input class="form-input" id="e-title" placeholder="Abu Dhabi Pitch Night #4" />
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="e-type">
+            <option>Pitch Night</option>
+            <option>Networking</option>
+            <option>Workshop</option>
+            <option>Demo Day</option>
+            <option>Fireside Chat</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-input" id="e-date" type="date" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" id="e-location" placeholder="Space42, Abu Dhabi" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Attendees</label>
+          <input class="form-input" id="e-max" type="number" placeholder="50" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="e-desc"
+          placeholder="What happens at this event?" style="min-height:70px"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveEvent()">
+        Create Event
+      </button>
+    </div>
+  </div>
+
+  <!-- founder modal -->
+  <div class="modal-overlay" id="founder-modal" style="display:none"
+       onclick="if(event.target===this) closeModal('founder-modal')">
+    <div class="modal">
+      <div class="modal-title">
+        Add Founder to Network
+        <button class="modal-close" onclick="closeModal('founder-modal')">×</button>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" id="f-name" placeholder="Aisha Al-Mansoori" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Startup Name</label>
+          <input class="form-input" id="f-startup" placeholder="NovaMed AI" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <input class="form-input" id="f-role" placeholder="CEO &amp; Co-Founder" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bio &amp; Interests</label>
+        <textarea class="form-textarea" id="f-bio"
+          placeholder="Background, expertise, what you're looking for..." style="min-height:80px"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveFounder()">
+        Add to Network
+      </button>
+    </div>
+  </div>
+
+  <!-- ai match modal -->
+  <div class="modal-overlay" id="match-modal" style="display:none"
+       onclick="if(event.target===this) closeModal('match-modal')">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="mm-title">AI Investor Matches</span>
+        <button class="modal-close" onclick="closeModal('match-modal')">×</button>
+      </div>
+      <div id="match-results"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+
+</body>
+</html>
